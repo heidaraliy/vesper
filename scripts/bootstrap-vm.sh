@@ -7,6 +7,7 @@ INSTALL_CODEX="${INSTALL_CODEX:-1}"
 INSTALL_GO="${INSTALL_GO:-1}"
 INSTALL_CPP="${INSTALL_CPP:-1}"
 INSTALL_RUST="${INSTALL_RUST:-1}"
+INSTALL_NVIM="${INSTALL_NVIM:-1}"
 CREATE_USER="${CREATE_USER:-0}"
 VESPER_USER="${VESPER_USER:-vesper}"
 
@@ -15,7 +16,7 @@ usage() {
 Usage: scripts/bootstrap-vm.sh [options]
 
 Bootstrap an Ubuntu/Debian VM for running Vesper, Codex, GitHub CLI, Node,
-Go, Rust, Python, and common C/C++ build tooling.
+Go, Rust, Python, Neovim, and common C/C++ build tooling.
 
 Options:
   --node-major <n>       Node.js major version to install (default: 22)
@@ -24,6 +25,7 @@ Options:
   --skip-go              Do not install Go
   --skip-cpp             Do not install C/C++ build dependencies
   --skip-rust            Do not install Rust packages
+  --skip-nvim            Do not install Neovim/editor dependencies
   --create-user          Create a non-root "vesper" user and workspace dirs
   --user <name>          User name for --create-user (default: vesper)
   -h, --help             Show this help
@@ -35,6 +37,7 @@ Environment overrides:
   INSTALL_GO=1
   INSTALL_CPP=1
   INSTALL_RUST=1
+  INSTALL_NVIM=1
   CREATE_USER=0
   VESPER_USER=vesper
 
@@ -68,6 +71,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-rust)
       INSTALL_RUST=0
+      shift
+      ;;
+    --skip-nvim)
+      INSTALL_NVIM=0
       shift
       ;;
     --create-user)
@@ -305,6 +312,39 @@ install_codex() {
   codex --version || true
 }
 
+install_neovim() {
+  if [[ "${INSTALL_NVIM}" != "1" ]]; then
+    log "Skipping Neovim"
+    return
+  fi
+
+  log "Installing Neovim and editor dependencies"
+  apt_install \
+    neovim \
+    fzf \
+    lua5.4 \
+    lua5.4-dev \
+    luarocks \
+    python3-pynvim \
+    xclip \
+    wl-clipboard
+
+  if command -v npm >/dev/null 2>&1; then
+    npm install -g \
+      typescript \
+      typescript-language-server \
+      vscode-langservers-extracted \
+      bash-language-server \
+      yaml-language-server
+  fi
+
+  if command -v go >/dev/null 2>&1; then
+    env GOBIN=/usr/local/bin go install golang.org/x/tools/gopls@latest || true
+  fi
+
+  nvim --version | head -n 1
+}
+
 create_vesper_user() {
   if [[ "${CREATE_USER}" != "1" ]]; then
     return
@@ -344,7 +384,7 @@ EOF
 
 print_versions() {
   log "Installed tool versions"
-  for cmd in git node npm npx gh go gcc g++ clang clang++ cmake ninja python3 sqlite3 codex rustc cargo; do
+  for cmd in git node npm npx gh go gcc g++ clang clang++ cmake ninja python3 sqlite3 codex nvim rustc cargo; do
     if command -v "${cmd}" >/dev/null 2>&1; then
       printf '%-10s %s\n' "${cmd}" "$("${cmd}" --version 2>/dev/null | head -n 1)"
     else
@@ -360,6 +400,7 @@ install_go
 install_cpp_deps
 install_rust
 install_codex
+install_neovim
 create_vesper_user
 write_profile
 print_versions

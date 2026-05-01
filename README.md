@@ -113,6 +113,7 @@ For an Ubuntu/Debian VM, Vesper includes a bootstrap script that installs the co
 - Go
 - Rust packages
 - Python build tooling
+- Neovim, Lua, common language servers, `gopls`, clipboard helpers, and fuzzy-finder dependencies
 - C/C++ build dependencies such as gcc, g++, clang, cmake, ninja, gdb, build-essential, and common native/game dev headers
 - SQLite headers for native Node dependencies
 - a global profile file at `/etc/profile.d/vesper-toolchain.sh` for toolchain paths
@@ -130,6 +131,7 @@ sudo scripts/bootstrap-vm.sh --node-major 22
 sudo scripts/bootstrap-vm.sh --go-version 1.23.6
 sudo scripts/bootstrap-vm.sh --skip-go --skip-cpp
 sudo scripts/bootstrap-vm.sh --skip-rust
+sudo scripts/bootstrap-vm.sh --skip-nvim
 sudo scripts/bootstrap-vm.sh --create-user --user vesper
 ```
 
@@ -141,6 +143,34 @@ gh auth login
 ```
 
 The script targets Ubuntu/Debian. For other distros, use it as a readable checklist rather than running it directly.
+
+## Sync Your Neovim Config To The VM
+
+The bootstrap script installs Neovim and common editor dependencies, but Vesper does not commit personal dotfiles into this public repo. To copy your local Neovim config into the VM, run this from your Mac:
+
+```bash
+scripts/sync-nvim-config.sh vesper@192.168.64.12
+```
+
+If you use an SSH alias:
+
+```bash
+scripts/sync-nvim-config.sh vesper-vm
+```
+
+Preview first:
+
+```bash
+scripts/sync-nvim-config.sh --dry-run vesper-vm
+```
+
+Use a different local config path:
+
+```bash
+scripts/sync-nvim-config.sh --source ~/.config/nvim-work vesper-vm
+```
+
+The script copies only `~/.config/nvim`, not plugin caches or local editor state. After syncing, SSH into the VM and open `nvim` once so your plugin manager can install plugins.
 
 Authenticate Codex:
 
