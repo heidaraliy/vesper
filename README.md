@@ -111,8 +111,11 @@ For an Ubuntu/Debian VM, Vesper includes a bootstrap script that installs the co
 - Node.js and npm
 - Codex CLI via npm
 - Go
-- C/C++ build dependencies such as clang, cmake, ninja, gdb, build-essential, and common native/game dev headers
+- Rust packages
+- Python build tooling
+- C/C++ build dependencies such as gcc, g++, clang, cmake, ninja, gdb, build-essential, and common native/game dev headers
 - SQLite headers for native Node dependencies
+- a global profile file at `/etc/profile.d/vesper-toolchain.sh` for toolchain paths
 
 Run:
 
@@ -126,6 +129,7 @@ Useful variants:
 sudo scripts/bootstrap-vm.sh --node-major 22
 sudo scripts/bootstrap-vm.sh --go-version 1.23.6
 sudo scripts/bootstrap-vm.sh --skip-go --skip-cpp
+sudo scripts/bootstrap-vm.sh --skip-rust
 sudo scripts/bootstrap-vm.sh --create-user --user vesper
 ```
 

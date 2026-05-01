@@ -6,6 +6,7 @@ GO_VERSION="${GO_VERSION:-}"
 INSTALL_CODEX="${INSTALL_CODEX:-1}"
 INSTALL_GO="${INSTALL_GO:-1}"
 INSTALL_CPP="${INSTALL_CPP:-1}"
+INSTALL_RUST="${INSTALL_RUST:-1}"
 CREATE_USER="${CREATE_USER:-0}"
 VESPER_USER="${VESPER_USER:-vesper}"
 
@@ -13,8 +14,8 @@ usage() {
   cat <<'USAGE'
 Usage: scripts/bootstrap-vm.sh [options]
 
-Bootstrap an Ubuntu/Debian VM for running Vesper, Codex, GitHub CLI, Go, and
-common C/C++ build tooling.
+Bootstrap an Ubuntu/Debian VM for running Vesper, Codex, GitHub CLI, Node,
+Go, Rust, Python, and common C/C++ build tooling.
 
 Options:
   --node-major <n>       Node.js major version to install (default: 22)
@@ -22,6 +23,7 @@ Options:
   --skip-codex           Do not install the Codex CLI npm package
   --skip-go              Do not install Go
   --skip-cpp             Do not install C/C++ build dependencies
+  --skip-rust            Do not install Rust packages
   --create-user          Create a non-root "vesper" user and workspace dirs
   --user <name>          User name for --create-user (default: vesper)
   -h, --help             Show this help
@@ -32,6 +34,7 @@ Environment overrides:
   INSTALL_CODEX=1
   INSTALL_GO=1
   INSTALL_CPP=1
+  INSTALL_RUST=1
   CREATE_USER=0
   VESPER_USER=vesper
 
@@ -61,6 +64,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-cpp)
       INSTALL_CPP=0
+      shift
+      ;;
+    --skip-rust)
+      INSTALL_RUST=0
       shift
       ;;
     --create-user)
@@ -133,6 +140,14 @@ install_base_packages() {
     python3 \
     python3-pip \
     python3-venv \
+    python3-dev \
+    pipx \
+    software-properties-common \
+    file \
+    rsync \
+    ripgrep \
+    fd-find \
+    shellcheck \
     pkg-config \
     sqlite3 \
     libsqlite3-dev
@@ -149,8 +164,11 @@ install_node() {
     > /etc/apt/sources.list.d/nodesource.list
   apt-get update
   apt_install nodejs
+  npm install -g npm@latest
+  corepack enable || true
   node --version
   npm --version
+  npx --version
 }
 
 install_github_cli() {
@@ -204,12 +222,17 @@ install_cpp_deps() {
   log "Installing C/C++ build dependencies"
   apt_install \
     build-essential \
+    gcc \
+    g++ \
     clang \
+    clang-format \
+    clang-tidy \
     lldb \
     lld \
     cmake \
     ninja-build \
     gdb \
+    valgrind \
     make \
     autoconf \
     automake \
@@ -217,10 +240,23 @@ install_cpp_deps() {
     ccache \
     libssl-dev \
     zlib1g-dev \
+    libbz2-dev \
+    libffi-dev \
+    liblzma-dev \
+    libreadline-dev \
+    libncurses-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    libcurl4-openssl-dev \
     mesa-common-dev \
     libgl1-mesa-dev \
     libglu1-mesa-dev \
+    libegl1-mesa-dev \
+    libgles2-mesa-dev \
     libx11-dev \
+    libxext-dev \
+    libxfixes-dev \
+    libxrender-dev \
     libxrandr-dev \
     libxi-dev \
     libxcursor-dev \
@@ -229,7 +265,33 @@ install_cpp_deps() {
     libxkbcommon-dev \
     libasound2-dev \
     libpulse-dev \
-    libudev-dev
+    libudev-dev \
+    libsdl2-dev \
+    libsdl2-image-dev \
+    libsdl2-mixer-dev \
+    libsdl2-ttf-dev \
+    libfreetype6-dev \
+    libpng-dev \
+    libjpeg-dev \
+    libopenal-dev \
+    libogg-dev \
+    libvorbis-dev \
+    libglfw3-dev \
+    libglm-dev \
+    libvulkan-dev \
+    vulkan-tools
+}
+
+install_rust() {
+  if [[ "${INSTALL_RUST}" != "1" ]]; then
+    log "Skipping Rust"
+    return
+  fi
+
+  log "Installing Rust from apt"
+  apt_install rustc cargo
+  rustc --version
+  cargo --version
 }
 
 install_codex() {
@@ -259,13 +321,48 @@ create_vesper_user() {
   install -d -o "${VESPER_USER}" -g "${VESPER_USER}" "/home/${VESPER_USER}/data/artifacts"
 }
 
+write_profile() {
+  log "Writing global toolchain profile"
+  cat >/etc/profile.d/vesper-toolchain.sh <<'EOF'
+# Vesper VM toolchain paths.
+if [ -d /usr/local/go/bin ]; then
+  case ":$PATH:" in
+    *:/usr/local/go/bin:*) ;;
+    *) export PATH="/usr/local/go/bin:$PATH" ;;
+  esac
+fi
+
+if [ -d "$HOME/.cargo/bin" ]; then
+  case ":$PATH:" in
+    *:"$HOME/.cargo/bin":*) ;;
+    *) export PATH="$HOME/.cargo/bin:$PATH" ;;
+  esac
+fi
+EOF
+  chmod 0644 /etc/profile.d/vesper-toolchain.sh
+}
+
+print_versions() {
+  log "Installed tool versions"
+  for cmd in git node npm npx gh go gcc g++ clang clang++ cmake ninja python3 sqlite3 codex rustc cargo; do
+    if command -v "${cmd}" >/dev/null 2>&1; then
+      printf '%-10s %s\n' "${cmd}" "$("${cmd}" --version 2>/dev/null | head -n 1)"
+    else
+      printf '%-10s %s\n' "${cmd}" "not installed"
+    fi
+  done
+}
+
 install_base_packages
 install_node
 install_github_cli
 install_go
 install_cpp_deps
+install_rust
 install_codex
 create_vesper_user
+write_profile
+print_versions
 
 log "Bootstrap complete"
 cat <<EOF
