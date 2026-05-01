@@ -1,0 +1,38 @@
+{
+  "runtimeMode": "vm",
+  "databasePath": "./data/vesper.db",
+  "artifactRoot": "./data/artifacts",
+  "codex": {
+    "model": null,
+    "reasoning": "high",
+    "sandbox": "workspace-write",
+    "approvalPolicy": "never"
+  },
+  "discord": {
+    "clientId": "${DISCORD_CLIENT_ID}",
+    "guildId": "${DISCORD_GUILD_ID}",
+    "ownerIds": []
+  },
+  "projects": [
+    {
+      "name": "Lune",
+      "slug": "lune",
+      "path": "/home/vesper/projects/lune",
+      "worktreeRoot": "/home/vesper/worktrees/lune",
+      "buildCommand": "cpp/tools/dev/lune build",
+      "testCommand": "cpp/tools/dev/lune test",
+      "profile": "lune",
+      "gitRequired": true
+    },
+    {
+      "name": "Navia",
+      "slug": "navia",
+      "path": "/home/vesper/projects/navia",
+      "worktreeRoot": "/home/vesper/worktrees/navia",
+      "buildCommand": "go test ./...",
+      "testCommand": "go test ./...",
+      "profile": "go-bubbletea",
+      "gitRequired": true
+    }
+  ]
+}

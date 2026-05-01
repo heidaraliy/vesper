@@ -1,0 +1,32 @@
+{
+  "name": "vesper",
+  "version": "0.1.0",
+  "description": "Discord-controlled headless Codex orchestrator for safe autonomous project work.",
+  "type": "module",
+  "license": "MIT",
+  "private": false,
+  "bin": {
+    "vesper": "./dist/index.js"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.8.0",
+    "discord.js": "^14.19.3",
+    "dotenv": "^16.5.0",
+    "nanoid": "^5.1.5",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.15.3",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  }
+}
