@@ -64,12 +64,12 @@ Implemented:
 - safety classifier for destructive commands, secrets, and piped installers
 - artifact writing
 - memory search/write commands
+- Ubuntu/Debian VM bootstrap script
 - TypeScript build and Vitest test suite
 
 Not yet implemented:
 
 - outer pre-exec command firewall before Codex executes shell commands
-- VM provisioning scripts
 - artifact backup/restore commands
 - GitHub repo/issue importers
 - rich Discord buttons/select menus
@@ -86,6 +86,8 @@ Inside the VM or development machine:
 - npm 11+
 - Codex CLI installed and authenticated
 - Git
+- Go, if your target projects use Go
+- C/C++ build tools, if your target projects use C/C++
 - GitHub CLI, if you want PR creation
 - a Discord application and bot token
 
@@ -98,6 +100,43 @@ codex --version
 gh --version
 git --version
 ```
+
+## Bootstrap A Fresh VM
+
+For an Ubuntu/Debian VM, Vesper includes a bootstrap script that installs the common toolchain:
+
+- base utilities
+- Git
+- GitHub CLI
+- Node.js and npm
+- Codex CLI via npm
+- Go
+- C/C++ build dependencies such as clang, cmake, ninja, gdb, build-essential, and common native/game dev headers
+- SQLite headers for native Node dependencies
+
+Run:
+
+```bash
+sudo scripts/bootstrap-vm.sh --create-user
+```
+
+Useful variants:
+
+```bash
+sudo scripts/bootstrap-vm.sh --node-major 22
+sudo scripts/bootstrap-vm.sh --go-version 1.23.6
+sudo scripts/bootstrap-vm.sh --skip-go --skip-cpp
+sudo scripts/bootstrap-vm.sh --create-user --user vesper
+```
+
+The script intentionally does not run `codex login` or `gh auth login`; those are interactive and should be performed by the operator:
+
+```bash
+codex login
+gh auth login
+```
+
+The script targets Ubuntu/Debian. For other distros, use it as a readable checklist rather than running it directly.
 
 Authenticate Codex:
 
@@ -234,13 +273,13 @@ Example:
   },
   "projects": [
     {
-      "name": "Lune",
-      "slug": "lune",
-      "path": "/home/vesper/projects/lune",
-      "worktreeRoot": "/home/vesper/worktrees/lune",
-      "buildCommand": "cpp/tools/dev/lune build",
-      "testCommand": "cpp/tools/dev/lune test",
-      "profile": "lune",
+      "name": "Emberfall",
+      "slug": "emberfall",
+      "path": "/home/vesper/projects/emberfall",
+      "worktreeRoot": "/home/vesper/worktrees/emberfall",
+      "buildCommand": "cmake --build build",
+      "testCommand": "ctest --test-dir build --output-on-failure",
+      "profile": "cpp-game",
       "gitRequired": true
     }
   ]
@@ -263,40 +302,40 @@ Fields:
 | `projects[].worktreeRoot` | where Vesper creates git worktrees |
 | `projects[].buildCommand` | project build command inserted into prompts |
 | `projects[].testCommand` | project test command inserted into prompts |
-| `projects[].profile` | project instruction profile label |
+| `projects[].profile` | project instruction profile label, such as `cpp-game`, `web-app`, or `go-bubbletea` |
 | `projects[].gitRequired` | block agents unless `.git` exists |
 
-## Lune Setup
+## Example C++ Project Setup
 
 Inside the VM:
 
 ```bash
 mkdir -p /home/vesper/projects /home/vesper/worktrees
 cd /home/vesper/projects
-git clone git@github.com:heidaraliy/lune.git
+git clone git@github.com:example/emberfall.git
 ```
 
 Configure:
 
 ```json
 {
-  "name": "Lune",
-  "slug": "lune",
-  "path": "/home/vesper/projects/lune",
-  "worktreeRoot": "/home/vesper/worktrees/lune",
-  "buildCommand": "cpp/tools/dev/lune build",
-  "testCommand": "cpp/tools/dev/lune test",
-  "profile": "lune",
+  "name": "Emberfall",
+  "slug": "emberfall",
+  "path": "/home/vesper/projects/emberfall",
+  "worktreeRoot": "/home/vesper/worktrees/emberfall",
+  "buildCommand": "cmake -S . -B build -G Ninja && cmake --build build",
+  "testCommand": "ctest --test-dir build --output-on-failure",
+  "profile": "cpp-game",
   "gitRequired": true
 }
 ```
 
-Lune already has mature agent guidance:
+A mature project should include local agent guidance:
 
 - `AGENTS.md`
-- `CLAUDE.md`
+- `CLAUDE.md`, if used by your team
 - `.codex/skills`
-- `tools/agents`
+- `tools/agents`, if you keep shared instructions or hooks there
 - build/test wrappers
 
 Vesper treats those as project-local authority. It does not copy those instructions into global prompts.
@@ -308,26 +347,26 @@ Recommended workflow:
 3. You pull the PR branch locally on your Mac for playtesting.
 4. Merge after review.
 
-## Navia Setup
+## Example Go TUI Setup
 
-Navia is a Go/Bubble Tea project. If your local copy is not a git repo yet, initialize it before using automatic mode:
+For a Go/Bubble Tea project, clone or initialize the repo inside the VM:
 
 ```bash
-cd /home/vesper/projects/navia
+cd /home/vesper/projects/compass-tui
 git init
-git remote add origin git@github.com:heidaraliy/navia.git
+git remote add origin git@github.com:example/compass-tui.git
 ```
 
 Add an `AGENTS.md` before automatic runs. Until then, Vesper should be used in `plan-gated` mode only.
 
-Suggested Navia config:
+Suggested config:
 
 ```json
 {
-  "name": "Navia",
-  "slug": "navia",
-  "path": "/home/vesper/projects/navia",
-  "worktreeRoot": "/home/vesper/worktrees/navia",
+  "name": "Compass TUI",
+  "slug": "compass-tui",
+  "path": "/home/vesper/projects/compass-tui",
+  "worktreeRoot": "/home/vesper/worktrees/compass-tui",
   "buildCommand": "go test ./...",
   "testCommand": "go test ./...",
   "profile": "go-bubbletea",
@@ -361,22 +400,22 @@ Project commands:
 
 ```text
 /project list
-/project inspect project:lune
+/project inspect project:emberfall
 ```
 
 Todo commands:
 
 ```text
-/todo add project:lune title:"Fix tooltip spacing" body:"Make the left margin 2px tighter." mode:automatic
-/todo add project:lune title:"Design combat lab" body:"Explore implementation options." mode:plan-gated
-/todo list project:lune
+/todo add project:emberfall title:"Fix tooltip spacing" body:"Make the left margin 2px tighter." mode:automatic
+/todo add project:emberfall title:"Design arena debug tools" body:"Explore implementation options." mode:plan-gated
+/todo list project:emberfall
 /todo pick todo:todo_xxxxxxxxxxxx
 ```
 
 Agent commands:
 
 ```text
-/agent spawn project:lune prompt:"Investigate how to add combat lab frame step controls." mode:plan-gated
+/agent spawn project:emberfall prompt:"Investigate how to add arena frame-step controls." mode:plan-gated
 /agent approve run:run_xxxxxxxxxxxx
 /agent approve run:run_xxxxxxxxxxxx feedback:"Use the smaller UI-only approach."
 /agent cancel run:run_xxxxxxxxxxxx
@@ -386,8 +425,8 @@ Agent commands:
 Memory commands:
 
 ```text
-/memory write project:lune title:"Golden replay rule" content:"Run golden record/verify when deterministic simulation output changes."
-/memory search project:lune query:"golden replay"
+/memory write project:emberfall title:"Replay rule" content:"Run record/verify when deterministic simulation output changes."
+/memory search project:emberfall query:"deterministic replay"
 ```
 
 ## Autonomy Modes
@@ -455,10 +494,10 @@ Important: the current implementation observes Codex command events and kills un
 ```text
 /home/vesper/
   app/vesper/             # this repo
-  projects/lune/          # normal clone
-  projects/navia/         # normal clone
-  worktrees/lune/         # Vesper-created worktrees
-  worktrees/navia/
+  projects/emberfall/     # normal clone
+  projects/compass-tui/   # normal clone
+  worktrees/emberfall/    # Vesper-created worktrees
+  worktrees/compass-tui/
   data/vesper.db
   data/artifacts/
 ```
@@ -590,7 +629,6 @@ Near-term:
 - Discord buttons and select menus
 - complete two-approver destructive approval flow
 - `vesper doctor`
-- VM provisioning script
 - GitHub PR creation helper
 - artifact backup/restore command
 - project bootstrap command that writes initial `AGENTS.md`
