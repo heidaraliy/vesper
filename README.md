@@ -48,6 +48,8 @@ If an agent ever destroys the VM, you delete the VM and restore from git plus Ve
 
 Vesper also has a `local-dev` mode for solo development on your Mac, but automatic agents are disabled in that mode.
 
+For the recommended Apple Silicon setup with UTM, one GUI operator VM, and cloned headless agent VMs, see [docs/utm-platform.md](docs/utm-platform.md).
+
 ## Current Status
 
 Implemented:
@@ -65,6 +67,9 @@ Implemented:
 - artifact writing
 - memory search/write commands
 - Ubuntu/Debian VM bootstrap script
+- UTM operator/agent VM bootstrap scripts and setup guide
+- minimal per-agent SQLite queue schema
+- systemd worker service template for future queue workers
 - TypeScript build and Vitest test suite
 
 Not yet implemented:
@@ -143,6 +148,30 @@ gh auth login
 ```
 
 The script targets Ubuntu/Debian. For other distros, use it as a readable checklist rather than running it directly.
+
+## UTM Operator And Agent VMs
+
+For an Apple Silicon Mac, the recommended Vesper platform is managed through UTM:
+
+- `operator-gui`: Ubuntu Desktop ARM64 for browser checks, Discord/log viewing, dashboards, and manual intervention
+- `agent-base`: Ubuntu Server ARM64 with Vesper dependencies, snapshotted before use
+- `agent-01` and `agent-02`: disposable headless clones of `agent-base`
+
+Use UTM **Virtualize** mode with ARM64 Ubuntu ISOs. Keep host shared folders disabled for agent VMs.
+
+After installing Ubuntu Desktop in `operator-gui`:
+
+```bash
+sudo scripts/utm/bootstrap-operator-gui.sh
+```
+
+After installing Ubuntu Server in `agent-base`:
+
+```bash
+sudo scripts/utm/bootstrap-agent-base.sh
+```
+
+The agent-base script creates `/srv/vesper/agents/agent-01`, initializes `sql/agent-queue.sql`, and prepares the VM to be snapshotted and cloned. The full setup, sizing, clone checklist, validation checklist, and systemd worker template notes live in [docs/utm-platform.md](docs/utm-platform.md).
 
 ## Sync Your Neovim Config To The VM
 

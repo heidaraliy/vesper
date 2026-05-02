@@ -1,0 +1,25 @@
+[Unit]
+Description=Vesper worker for %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=agent
+Group=agent
+WorkingDirectory=/srv/vesper/agents/%i/workspace
+Environment=VESPER_AGENT_ID=%i
+Environment=VESPER_AGENT_ROOT=/srv/vesper/agents/%i
+Environment=CODEX_HOME=/srv/vesper/agents/%i/codex-home
+EnvironmentFile=-/srv/vesper/agents/%i/.env
+ExecStart=/usr/local/bin/vesper-worker
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/vesper/agents/%i
+
+[Install]
+WantedBy=multi-user.target
